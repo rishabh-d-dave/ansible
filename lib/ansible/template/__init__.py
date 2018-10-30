@@ -517,6 +517,28 @@ class Templar:
             templatable = False
         return templatable
 
+    def expand_all_jinja2_templates(self, variables):
+        expanded_vars = {}
+        for k, v in variables.items():
+            if self.is_template(v):
+                expanded_vars[k] = self.expand_jinja2_template(v)
+
+        return expanded_vars
+
+    def expand_jinja2_template(self, var):
+        try:
+            expanded_var = self.template(var, convert_bare=True, fail_on_undefined=True)
+            if expanded_var == var:
+                if not isinstance(expanded_var, string_types):
+                    raise AnsibleUndefinedVariable
+                expanded_var = self.template("{{" + expanded_var + "}}", convert_bare=True, fail_on_undefined=True)
+        except AnsibleUndefinedVariable as e:
+            expanded_var = u"VARIABLE IS NOT DEFINED!"
+            if self._display.verbosity > 0:
+                expanded_var += u": %s" % str(e)
+
+        return expanded_var
+
     def _contains_vars(self, data):
         '''
         returns True if the data contains a variable pattern
